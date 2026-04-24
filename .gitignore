@@ -1,0 +1,37 @@
+# Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Environment / Secrets
+.env
+.env.local
+*.key
+credentials.json
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.idea/
+.vscode/
+
+# Projekt-spezifisch
+# Eingangsdaten (private Fotos) — Strukturdatei bleibt erhalten
+fotos/*
+!fotos/README.md
+
+# Rohdaten-Cache (aus privaten Fotos generiert)
+ergebnisse/
+*.tmp
+
+# Demo-Output (aus privaten Daten)
+buecher.csv
+buecher_*.csv
