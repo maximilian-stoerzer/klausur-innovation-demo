@@ -8,9 +8,12 @@ Aus Bildern in `./fotos/` (Fotos von Buchrücken aus einem Bücherregal) mit Hil
 
 ## Technische Constraints
 
+- **Zielplattform:** Windows 11 + WSL2 (Ubuntu). Kommandos in Bash, Pfade im Linux-Dateisystem (`~/...`), nicht unter `/mnt/c/...`.
 - Python 3.11+.
 - Anthropic Python SDK (`anthropic`) aktuell. Modell: `claude-sonnet-4-5` (oder das in der Umgebung verfügbare Vision-fähige Modell).
-- API-Key aus `ANTHROPIC_API_KEY`.
+- API-Keys liegen in `.env` (Vorlage: `.env.example`). Vor jedem Lauf in die Shell laden: `set -a; source .env; set +a`.
+  - `ANTHROPIC_API_KEY` (Pflicht)
+  - `GOOGLE_BOOKS_API_KEY` (optional, hebt Quota für Verifikation)
 - Streamlit für optionale UI-Ausbaustufe.
 - Pillow für Bild-Vorverarbeitung (Größen-Skalierung).
 - Rohdaten-Backup: pro Foto eine JSON-Datei in `./ergebnisse/`.
@@ -34,6 +37,8 @@ demo_projekt/
 ├── app.py                  # Streamlit-UI (Ausbaustufe)
 ├── buecher.csv             # Ergebnis
 ├── requirements.txt
+├── .env.example            # Vorlage für API-Keys (committet)
+├── .env                    # echte Keys (NICHT committet — via .gitignore)
 └── CLAUDE.md               # diese Datei
 ```
 

@@ -2,6 +2,8 @@
 
 Dieses Paket enthält eine komplette, funktionsfähige Version der Bücherregal-App. Zweck: im Demo-Termin als Plan B einsatzbereit, falls Claude Code live nicht durchkommt (API-Fehler, Internet-Probleme, Claude hängt sich auf).
 
+**Plattform:** Windows 11 + WSL2 (Ubuntu). Alle Kommandos im WSL-Terminal, Bash.
+
 ## Dateien
 
 - `extract.py` — Python-Skript, liest alle Fotos aus `./fotos/`, ruft Claude-Vision-API, schreibt `buecher.csv` und Rohdaten-JSON unter `./ergebnisse/`.
@@ -12,48 +14,55 @@ Dieses Paket enthält eine komplette, funktionsfähige Version der Bücherregal-
 
 Im Demo-Projektordner:
 
-```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-pip install -r fallback\requirements.txt
-$env:ANTHROPIC_API_KEY = "sk-ant-..."
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r fallback/requirements.txt
+
+# .env aus Projekt-Vorlage anlegen und Keys eintragen
+cp .env.example .env
+nano .env
+
+# Keys in die aktuelle Shell laden (pro neuer Shell wiederholen)
+set -a; source .env; set +a
 ```
 
 ## Funktionstest
 
-```powershell
+```bash
 # Nur das erste Foto testen (Kostenrahmen: wenige Cent)
-python fallback\extract.py --limit 1
+python fallback/extract.py --limit 1
 ```
 
 Erfolg, wenn:
 
 - Im Terminal erscheint eine Zeile `[ 1/1] <dateiname> ... X Buch/Bücher (Ns)`.
-- `ergebnisse\<dateiname>.json` wurde angelegt und enthält gültiges JSON.
+- `ergebnisse/<dateiname>.json` wurde angelegt und enthält gültiges JSON.
 - `buecher.csv` wurde angelegt, mindestens eine Datenzeile.
 
 Dann vollständiger Lauf:
 
-```powershell
-python fallback\extract.py
+```bash
+python fallback/extract.py
 ```
 
 Und UI:
 
-```powershell
-streamlit run fallback\app.py
+```bash
+streamlit run fallback/app.py
 ```
 
-Browser öffnet `http://localhost:8501` mit der Tabelle.
+Browser öffnet `http://localhost:8501` mit der Tabelle. Unter WSL2 leitet Windows den Port automatisch weiter — du kannst die URL im Windows-Browser öffnen.
 
 ## Aktivierung im Live-Einsatz
 
 Wenn während der Demo etwas zickt und du umschalten willst:
 
-```powershell
-# Claude Code schließen (Ctrl+C)
+```bash
+# Claude Code mit Ctrl+C beenden
 # Im Demo-Projektordner:
-Copy-Item -Recurse -Force fallback\*.py .
+cp -rf fallback/. .
+set -a; source .env; set +a
 python extract.py
 streamlit run app.py
 ```
@@ -72,8 +81,10 @@ Kommentar Richtung Vorstand: „Für die Vorführung nutzen wir jetzt die vorab 
 
 | Symptom | Ursache | Lösung |
 |---|---|---|
-| `ANTHROPIC_API_KEY nicht gesetzt` | Env-Variable fehlt in dieser Shell | `$env:ANTHROPIC_API_KEY = "sk-ant-..."` |
+| `ANTHROPIC_API_KEY nicht gesetzt` | `.env` wurde in dieser Shell noch nicht geladen | `set -a; source .env; set +a` |
 | `credit_balance_too_low` | API-Kontingent leer | Neues Guthaben laden auf console.anthropic.com |
 | Antwort ist nicht parsbar | Claude hat mal keinen sauberen JSON geliefert | Im Skript `json_text`-Block prüfen; normalerweise hat die robuste Unrahmung das schon erledigt |
 | Streamlit-Tabelle leer | `buecher.csv` existiert, aber ohne Datenzeilen | `extract.py` neu laufen lassen; Console-Ausgabe prüfen |
 | Fotos werden nicht gefunden | Pfad falsch | `--fotos` setzen oder Ordner `./fotos/` im Projektordner anlegen |
+| Streamlit-Browser öffnet nicht | WSL → Windows-Browser-Forwarding ist meist automatisch; sonst http://localhost:8501 manuell aufrufen | Im WSL `curl http://localhost:8501` zeigt, ob der Dienst läuft |
+| Langsamer `pip install` oder Bild-Resize | Projekt liegt unter `/mnt/c/...` (Windows-Dateisystem) | Projekt nach `~/...` (Linux-Dateisystem) verschieben |

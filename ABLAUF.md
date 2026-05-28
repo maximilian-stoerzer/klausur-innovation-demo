@@ -2,7 +2,9 @@
 
 > **Zweck dieser Datei:** Alles, was du im Vorstandstermin brauchst, auf einer Seite. Nicht zwischen Dateien springen. Pre-Flight (zwei Blöcke), Prompt v3, Zeitraster, Kommentare, rote Flaggen, Plan B — in dieser Reihenfolge.
 >
-> **Zeit-Rechnung nach Trockenlauf 2:** Installation + `claude`-Start kostete 5–6 Min, reine Skript-Laufzeit 9 Min sequentiell → im 20-Min-Slot eng. **Fix:** Installation VOR Termin (1.1), Parallelisierung im Prompt (Abschnitt 2). Neue Laufzeit im Slot: **4–6 Min für Extraktion + Verifikation**.
+> **Plattform:** Windows 11 + WSL2 (Ubuntu). Alle Kommandos im WSL-Terminal, Bash. Demo-Ordner und Venv liegen im Linux-Dateisystem (`~/...`), nicht unter `/mnt/c/...` (I/O wäre dort spürbar langsamer).
+>
+> **Zeit-Rechnung nach Trockenlauf 2:** Installation + `claude`-Start kostete 5–6 Min, reine Skript-Laufzeit 9 Min sequentiell → im 20-Min-Slot eng. **Fix:** Installation VOR Termin (1.1), Parallelisierung + Vision-/Verifikations-Cache im Prompt (Abschnitt 2). Neue Laufzeit im Slot: **4–6 Min live, <1 Min mit Cache**.
 
 ---
 
@@ -12,48 +14,63 @@
 
 Installation, Keys setzen, einmal durchtesten. **Diese Punkte dürfen nicht im Slot stattfinden.**
 
-- [ ] Node.js LTS + Claude Code installiert: `claude --version` gibt Versionsnummer.
-- [ ] Python 3.12+ installiert: `python --version`.
-- [ ] `ANTHROPIC_API_KEY` dauerhaft gesetzt (User-Scope, nicht nur Session):
-  ```powershell
-  [Environment]::SetEnvironmentVariable("ANTHROPIC_API_KEY", "sk-ant-DEIN-KEY", "User")
+- [ ] WSL2 (Ubuntu) ist installiert und up-to-date: `wsl --status` in PowerShell zeigt Ubuntu als Default. Im WSL: `sudo apt update && sudo apt upgrade -y`.
+- [ ] Node.js LTS + Claude Code im WSL installiert:
+  ```bash
+  curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+  # neue Shell öffnen
+  nvm install --lts
+  npm install -g @anthropic-ai/claude-code
+  claude --version   # muss eine Versionsnummer zeigen
   ```
-- [ ] `GOOGLE_BOOKS_API_KEY` dauerhaft gesetzt (hebt Quota von 1.000 auf 100.000 Requests/Tag — sonst hängen im Slot die Verifikationen):
-  ```powershell
-  [Environment]::SetEnvironmentVariable("GOOGLE_BOOKS_API_KEY", "DEIN-GOOGLE-KEY", "User")
+- [ ] Python 3.11+ und venv-Modul:
+  ```bash
+  python3 --version
+  sudo apt install -y python3-venv python3-pip
   ```
-  PowerShell-Fenster danach neu öffnen, damit die Variablen greifen.
+- [ ] **`.env` mit beiden Keys ist im Repo vorhanden** (`.env.example` als Vorlage):
+  ```bash
+  cd ~/Projekte/klausur-innovation-demo
+  cp .env.example .env
+  nano .env
+  # ANTHROPIC_API_KEY=sk-ant-DEIN-KEY
+  # GOOGLE_BOOKS_API_KEY=DEIN-GOOGLE-KEY   # hebt Quota von 1.000 auf 100.000 Requests/Tag
+  ```
+  Google-Books-Key besorgen: https://console.cloud.google.com/ → "Books API" aktivieren → Credentials → API key. Ohne Key hängen im Slot bei großen Regalen ggf. die Verifikationen.
+
 - [ ] Demo-Ordner einmal angelegt und Venv installiert:
-  ```powershell
-  $demo = "C:\Temp\vorstand_demo"
-  Remove-Item $demo -Recurse -Force -ErrorAction SilentlyContinue
-  New-Item -ItemType Directory -Path $demo | Out-Null
-  Copy-Item "G:\OneDrive\Dokumente\2026\Buchprojekte\TODOs\05-narrativ-vorstand\demo_vorbereitung\CLAUDE.md" $demo
-  Copy-Item "G:\OneDrive\Dokumente\2026\Buchprojekte\TODOs\05-narrativ-vorstand\demo_vorbereitung\fotos" $demo -Recurse
-  cd $demo
-  python -m venv .venv
-  .\.venv\Scripts\Activate.ps1
+  ```bash
+  demo=~/vorstand_demo
+  rm -rf "$demo" && mkdir -p "$demo"
+  cp ~/Projekte/klausur-innovation-demo/CLAUDE.md "$demo/"
+  cp ~/Projekte/klausur-innovation-demo/.env "$demo/"
+  cp ~/Projekte/klausur-innovation-demo/.env.example "$demo/"
+  cp -r ~/Projekte/klausur-innovation-demo/fotos "$demo/"
+  cd "$demo"
+  python3 -m venv .venv
+  source .venv/bin/activate
   pip install anthropic pillow streamlit
   python -c "import anthropic, PIL, streamlit; print('OK')"
   ```
   Die letzte Zeile MUSS `OK` ausgeben.
+
 - [ ] Einmal einen Trockenlauf mit `claude` durchgespielt. Die `./ergebnisse/`-Dateien bleiben danach als Cache liegen — im Live-Termin entscheidest du spontan: neu laufen oder Cache nutzen.
 
 ### 1.2 IM Termin, 3 Minuten vor Slot-Start
 
-- [ ] Beamer klebt, Zweitmonitor erweitert, Terminal-Schrift ≥ 16pt.
+- [ ] Beamer klebt, Zweitmonitor erweitert, Terminal-Schrift ≥ 16pt (Windows Terminal → Settings → Profile Ubuntu → Appearance → Font size).
 - [ ] Internet ≥ 20 Mbit down, Handy-Hotspot als Backup bereit.
 - [ ] Teams/Outlook/Slack/Browser-Notifications alle stumm, Bildschirm-Sleep ≥ 30 min.
 - [ ] Stoppuhr auf Smartphone griffbereit.
-- [ ] Demo-Ordner frisch, Venv aktiv, beide Keys gesetzt, `claude` einsatzbereit:
-  ```powershell
-  $demo = "C:\Temp\vorstand_demo"
-  Remove-Item "$demo\ergebnisse" -Recurse -Force -ErrorAction SilentlyContinue
-  Remove-Item "$demo\buecher.csv" -Force -ErrorAction SilentlyContinue
-  cd $demo
-  .\.venv\Scripts\Activate.ps1
-  echo "Anthropic: $($env:ANTHROPIC_API_KEY.Substring(0,10))..."
-  echo "Google Books: $($env:GOOGLE_BOOKS_API_KEY.Substring(0,10))..."
+- [ ] Demo-Ordner frisch, Venv aktiv, beide Keys geladen, `claude` einsatzbereit:
+  ```bash
+  demo=~/vorstand_demo
+  rm -rf "$demo/ergebnisse" "$demo/buecher.csv"
+  cd "$demo"
+  source .venv/bin/activate
+  set -a; source .env; set +a
+  echo "Anthropic:    ${ANTHROPIC_API_KEY:0:10}..."
+  echo "Google Books: ${GOOGLE_BOOKS_API_KEY:0:10}..."
   # Beide Zeilen müssen Key-Präfixe zeigen, nicht leer sein.
   ```
 
@@ -65,7 +82,7 @@ Installation, Keys setzen, einmal durchtesten. **Diese Punkte dürfen nicht im S
 
 Terminal öffnen, `claude` starten, den Block **zwischen den Trennstrichen** pasten, Enter.
 
-> **Wichtig:** Der Prompt verlangt explizit `claude-opus-4-6`, **Parallelisierung** (2–3 Vision-Calls gleichzeitig, Verifikation stream-parallel) und Pflicht-Verifikation gegen Open Library + Google Books. Das hebt die Laufzeit von 9 auf ~4 Min. Nicht abkürzen.
+> **Wichtig:** Der Prompt verlangt explizit `claude-opus-4-7`, **Parallelisierung** (2–3 Vision-Calls gleichzeitig, Verifikation stream-parallel) und Pflicht-Verifikation gegen Google Books (mit Retry + zweistufiger Autor-Suche). Vision- und Verifikations-Cache halten den Live-Lauf unter 1 Min. Nicht abkürzen.
 
 ---
 
@@ -84,7 +101,7 @@ Vorgehen:
 2. Plane dann die Implementierung. Drei Bausteine:
 
    A) Vision-Extraktion — extract.py
-   - Nutze die Anthropic-Python-Library (`anthropic`) und das Modell `claude-opus-4-6` (NICHT sonnet — Opus halluziniert deutlich weniger).
+   - Nutze die Anthropic-Python-Library (`anthropic`) und das Modell `claude-opus-4-7` (NICHT sonnet — Opus halluziniert deutlich weniger).
    - System-Prompt mit folgenden strengen Regeln (wortwörtlich übernehmen, das ist kritisch):
      "Du bist ein sorgfältiger Archivar, der Buchrücken in Regalfotos erfasst. Die absolute Priorität ist Genauigkeit, nicht Vollständigkeit.
      1. Extrahiere nur Bücher, deren Titel du tatsächlich auf dem Buchrücken lesen kannst. Rate niemals. Erfinde niemals. Wenn du nicht mindestens den Titel deutlich erkennst, lass das Buch komplett weg.
@@ -103,20 +120,24 @@ Vorgehen:
      * Vision-Pool: max_workers=3 (Anthropic verträgt das problemlos, drei Fotos laufen gleichzeitig in Vision-Calls).
      * Verification-Pool: max_workers=6 (OL/GB sind HTTP und warten viel, können mehr parallel).
    - Ablauf: `submit()` alle Fotos in den Vision-Pool. Sobald eins fertig ist (`as_completed()`), lies das JSON, extrahiere die Bücher, und `submit()` pro Buch sofort die Verifikation in den Verification-Pool. Die Verifikation darf also anlaufen, während spätere Fotos noch in Vision sind.
-   - Fortschrittsanzeige: zwei Zähler, z.B. `Vision 4/11  Verifiziert 37 (29 OL, 5 GB, 3 pending)`. Zeile pro Sekunde aktualisieren, nicht pro Event.
+   - Fortschrittsanzeige: zwei Zähler, z.B. `Vision 4/11  Verifiziert 37/52 (GB 34, n/f 3, err 0, pending 15)`. Zeile pro Sekunde aktualisieren, nicht pro Event.
    - Erst am Ende, nach `wait()` auf beide Pools, CSV schreiben.
 
-   C) Verifikation — in extract.py
-   - Für jeden erkannten Titel: Abgleich gegen Open Library (https://openlibrary.org/search.json?title=...&author=... falls Autor vorhanden, sonst nur title).
-   - Wenn Open Library keinen Treffer liefert: Fallback Google Books. Der API-Key wird aus der Umgebungsvariable GOOGLE_BOOKS_API_KEY gelesen und als `&key=...` an den Request angehängt. Wenn die Variable leer ist, Google Books ohne Key aufrufen (begrenzte Quota, max. 1.000 Requests/Tag).
-   - URL Google Books: https://www.googleapis.com/books/v1/volumes?q=intitle:<title>+inauthor:<author>&key=<key>
-   - Match-Kriterium: Token-Overlap (Jaccard-ähnlich) zwischen Claude-Titel und Datenbank-Titel >= 0.7 nach Normalisierung (lowercase, Satzzeichen weg, Stopwörter raus: the, der, die, das, a, an, and, und).
+   C) Verifikation — in extract.py, ausschließlich Google Books
+   - Datenbank: NUR Google Books. Open Library NICHT verwenden — in Tests ~25x langsamer und blockt Burst-Last mit leerem Body / HTTP 403. Google Books ist schnell, zuverlässig und liefert häufig ISBNs.
+   - Key aus Umgebungsvariable GOOGLE_BOOKS_API_KEY, als `&key=...` anhängen. Ist die Variable leer, Google Books ohne Key aufrufen (begrenzte Quota, max. 1.000 Requests/Tag).
+   - URL: https://www.googleapis.com/books/v1/volumes?q=intitle:<title>+inauthor:<author>&key=<key>
+   - ZWEISTUFIGE Suche (entscheidend für die Trefferquote): erst MIT `inauthor:<author>`. Liefert das keinen Match (oder ist kein Autor erkannt), die Suche OHNE Autor wiederholen, nur `intitle:<title>`. Grund: Autoren stehen auf Buchrücken oft abgekürzt ('E.A. Poe', 'J.K. Rowling'), Google Books speichert sie ausgeschrieben — der `inauthor:`-Filter würde das richtige Buch sonst herausfiltern. Die Präzision bleibt gewahrt, weil das Match-Kriterium ohnehin nur den Titel prüft.
+   - Match-Kriterium: Token-Overlap (Jaccard-ähnlich) zwischen Claude-Titel und Google-Books-Titel >= 0.7 nach Normalisierung (lowercase, Satzzeichen weg, Stopwörter raus: the, der, die, das, a, an, and, und).
+   - Robustheit (verhindert die meisten Fehler): alle Requests über EINE gemeinsame `requests.Session` mit Retry+Backoff auf 429/5xx (urllib3 `Retry`, `Retry-After` beachten) und einem aussagekräftigen User-Agent-Header. Das fängt die 429-Bursts ab, die Google Books unter Parallellast (6 Worker) liefert.
    - Ergebnis pro Buch:
      - Verifikation: found | not_found | error
-     - Verifizierter Titel / Autor / Jahr / ISBN aus der Datenbank, falls gefunden
-     - Quelle: openlibrary | googlebooks | (leer bei not_found)
+     - Verifizierter Titel / Autor / Jahr / ISBN aus Google Books, falls gefunden
+     - Quelle: googlebooks | (leer bei not_found/error)
+   - Status-Semantik (wichtig, sonst falsch): HTTP 200 ohne passenden Titel = not_found (gültiges Ergebnis, KEIN Fehler). error NUR, wenn auch nach erschöpften Retries kein sauberer Response kommt (Timeout/429/Netzfehler).
    - Kein Verwerfen: auch nicht-gefundene Bücher bleiben in der CSV, nur mit Verifikation=not_found markiert.
-   - HTTP-Timeout: 5 s. Bei Timeout oder 429: Verifikation=error, weiter machen.
+   - HTTP-Timeout: 5 s pro Versuch.
+   - Verifikations-Cache: Ergebnis je (Titel, Autor) unter ./ergebnisse/_verify_cache.json ablegen und beim nächsten Lauf wiederverwenden (außer mit --force-verify). Fehler (error) NICHT cachen, damit sie erneut versucht werden. Analog zum Vision-Cache — macht den Live-Lauf nahezu sofort fertig.
 
 3. Implementiere extract.py. Führe es dann mit --limit 1 und --print-raw probeweise aus, bevor du alle anfasst. Zeig mir die Rohantwort UND das Verifikationsergebnis (gefunden/nicht gefunden + Quelle) für dieses eine Foto.
 
@@ -126,13 +147,16 @@ Vorgehen:
    - "Fotos verarbeitet: X"
    - "Bücher erkannt: Y (high: a, medium: b, low: c)"
    - "Verifikationsrate: P % (found: Z, not_found: N, error: E)"
-   - "Quellen: Open Library: O, Google Books: G"
+   - "Quellen: Google Books: G"
 
 Technische Hinweise:
 - Anthropic-API-Key aus Umgebungsvariable ANTHROPIC_API_KEY.
 - Google-Books-API-Key aus Umgebungsvariable GOOGLE_BOOKS_API_KEY (optional, hebt Quota-Limit).
+- Beide Keys werden vor dem Aufruf via `set -a; source .env; set +a` aus der `.env` in die Shell geladen — das Skript selbst lädt `.env` nicht automatisch.
 - Error Handling: einzelne fehlgeschlagene Fotos überspringen, Fehler sammeln, am Ende anzeigen. Kein harter Abbruch.
 - CSV: UTF-8 mit BOM (Excel-kompatibel), Semikolon als Trennzeichen.
+- CLI-Flags: --limit N, --print-raw, --force-vision (Vision-Cache umgehen), --force-verify (Verifikations-Cache umgehen).
+- Bei externen API-Fehlern (429/Timeout) greift der automatische Retry — NICHT live debuggen. Eine Probe (--limit 1) und ein Vollauf genügen.
 
 Nicht jetzt nötig, aber als nächster Schritt danach: Streamlit-UI (app.py), die die CSV lädt, Filter nach Verifikation/Sicherheit/Autor bietet und Foto-Vorschau zeigt. Das kommt erst, wenn Extraktion + Verifikation stehen.
 
@@ -150,7 +174,7 @@ Zwei Varianten, je nach Pre-Flight-Entscheidung in 1.2:
 | Ab Min | Inhalt | Was du tust | Was der Vorstand sieht |
 |---|---|---|---|
 | 0:00 | Challenge-Folie | „Eingabe ~11 Fotos, Ziel verifizierte Bestandsliste, Zeit 10 Minuten." | Folie 5 der PPTX |
-| 0:30 | Terminal-Wechsel | Vom Folienmodus auf Terminal, `claude` starten | Leerer Claude-Prompt, `fotos/` sichtbar |
+| 0:30 | Terminal-Wechsel | Vom Folienmodus auf WSL-Terminal, `claude` starten | Leerer Claude-Prompt, `fotos/` sichtbar |
 | 0:45 | Prompt einfügen | Block aus Abschnitt 2 pasten, Enter | Prompt erscheint, Claude antwortet |
 | 1:30 | Plan-Phase | Rückfragen kurz bestätigen | Claude listet die drei Bausteine (Vision / Pipeline / Verifikation) |
 | 3:00 | Bau-Phase | Claude schreibt `extract.py`, installiert Dependencies, baut ThreadPool-Pipeline und Verifikationsfunktionen | Dateien entstehen, Code erscheint |
@@ -224,6 +248,7 @@ Kommentar-Ansage bei Cache-Variante (Minute 8:00): „Die Vision-Calls sind geca
 |---|---|---|
 | Claude hängt in der Plan-Phase > 90 s | Sanft nachhaken: „Mach weiter mit Schritt 2 und fang an zu implementieren." | Nach 2. Hänger → Plan B |
 | API-Fehler beim ersten Vision-Call | In Claude Code: „Der Fehler ist XYZ, lies die Fehlermeldung, pass das Bild-Handling an." | Nach 2. Fehler → Plan B |
+| `ANTHROPIC_API_KEY nicht gesetzt` | `.env` neu laden: `set -a; source .env; set +a` — neu starten | Sofort, kostet 5 s |
 | Einzelnes Foto nicht erkannt | Ignorieren, weitermachen. Kommentar: „KI kommt dort an Grenzen, wo auch ein Mensch den Titel nicht mehr entziffert." | — |
 | Streamlit-UI startet nicht | Ausbaustufe weglassen, direkt zur Reflexion. CSV im Editor öffnen und zeigen. | — |
 | Internet bricht weg | Hotspot aktivieren (30 s), dann Plan B wenn nicht stabil | Sofort |
@@ -238,10 +263,12 @@ Kommentar-Ansage bei Cache-Variante (Minute 8:00): „Die Vision-Calls sind geca
 
 Trigger: zweimal in Folge Claude-Code-Fehler, oder Internet weg, oder Minute 8:30 ohne ersten Test-Output.
 
-```powershell
-cd $demo
-Copy-Item -Recurse -Force "G:\OneDrive\Dokumente\2026\Buchprojekte\TODOs\05-narrativ-vorstand\demo_vorbereitung\fallback\*" .
-python extract.py ; streamlit run app.py
+```bash
+demo=~/vorstand_demo
+cd "$demo"
+cp -rf ~/Projekte/klausur-innovation-demo/fallback/. .
+set -a; source .env; set +a
+python extract.py && streamlit run app.py
 ```
 
 **Umschalt-Satz für den Vorstand** (sag genau das, kein Stottern):

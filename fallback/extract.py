@@ -57,7 +57,7 @@ except ImportError:
 # KONFIGURATION
 # ============================================================
 
-DEFAULT_MODEL = "claude-opus-4-6"
+DEFAULT_MODEL = "claude-opus-4-7"
 DEFAULT_MIN_OVERLAP = 0.7
 MAX_SIDE = 2048
 IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".webp"}
@@ -440,7 +440,9 @@ def main() -> int:
     if not os.environ.get("ANTHROPIC_API_KEY"):
         sys.stderr.write(
             "FEHLER: ANTHROPIC_API_KEY nicht gesetzt.\n"
-            "  PowerShell: $env:ANTHROPIC_API_KEY = \"sk-ant-...\"\n"
+            "  .env aus Vorlage anlegen:  cp .env.example .env  (dann Key eintragen)\n"
+            "  In aktuelle Shell laden:   set -a; source .env; set +a\n"
+            "  Oder direkt exportieren:   export ANTHROPIC_API_KEY=\"sk-ant-...\"\n"
         )
         return 1
 

@@ -5,7 +5,7 @@
 > - Google-Books-API-Key wird aus `GOOGLE_BOOKS_API_KEY` gelesen (hebt Quota von 1.000 auf 100.000 Requests/Tag).
 > - Verifikationsrate (found / not_found, OL vs. GB) wird am Ende explizit ausgegeben.
 >
-> **Changelog v2:** Opus 4.6 + strenge Anti-Halluzinations-Regeln + Pflicht-Verifikation gegen Open Library und Google Books.
+> **Changelog v2:** Opus 4.7 + strenge Anti-Halluzinations-Regeln + Pflicht-Verifikation gegen Open Library und Google Books.
 
 ## Wie du diesen Prompt benutzt
 
@@ -31,7 +31,7 @@ Vorgehen:
 2. Plane dann die Implementierung. Drei Bausteine:
 
    A) Vision-Extraktion — extract.py
-   - Nutze die Anthropic-Python-Library (`anthropic`) und das Modell `claude-opus-4-6` (NICHT sonnet — Opus halluziniert deutlich weniger).
+   - Nutze die Anthropic-Python-Library (`anthropic`) und das Modell `claude-opus-4-7` (NICHT sonnet — Opus halluziniert deutlich weniger).
    - System-Prompt mit folgenden strengen Regeln (wortwörtlich übernehmen, das ist kritisch):
      "Du bist ein sorgfältiger Archivar, der Buchrücken in Regalfotos erfasst. Die absolute Priorität ist Genauigkeit, nicht Vollständigkeit.
      1. Extrahiere nur Bücher, deren Titel du tatsächlich auf dem Buchrücken lesen kannst. Rate niemals. Erfinde niemals. Wenn du nicht mindestens den Titel deutlich erkennst, lass das Buch komplett weg.
@@ -78,6 +78,8 @@ Vorgehen:
 Technische Hinweise:
 - Anthropic-API-Key aus Umgebungsvariable ANTHROPIC_API_KEY.
 - Google-Books-API-Key aus Umgebungsvariable GOOGLE_BOOKS_API_KEY (optional, hebt Quota-Limit).
+- Beide Keys werden vor dem Aufruf via `set -a; source .env; set +a` aus der `.env` in die Shell geladen — das Skript lädt `.env` nicht automatisch.
+- Plattform: WSL2 (Ubuntu) unter Windows, Bash. Pfade ohne Backslashes.
 - Error Handling: einzelne fehlgeschlagene Fotos überspringen, Fehler sammeln, am Ende anzeigen. Kein harter Abbruch.
 - CSV: UTF-8 mit BOM (Excel-kompatibel), Semikolon als Trennzeichen.
 
